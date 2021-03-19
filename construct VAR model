@@ -1,0 +1,50 @@
+from arch.unitroot import ADF
+
+ADF(df['oil_return']) #ADF test on oil return
+ADF(df['auto_return']) #ADF test on auto return
+ADF(df['DJU_return']) #ADF test on DJU return
+
+result = sm.tsa.stattools.coint(df['oil_return'], df['auto_return'])
+result # cointegration test 
+result = sm.tsa.stattools.coint(df['oil_return'], df['DJU_return'])
+result
+df_return = df[['oil_return','auto_return','DJU_return']]
+df_return
+
+model = VAR(df_return)
+x = model.select_order(maxlags=12)
+x.summary()
+model = VAR(df_return)
+model_fit = model.fit(maxlags=2)
+model_fit.summary()
+
+#Model on oil return and auto return
+orgMod = sm.tsa.VARMAX(df[["oil_return","auto_return"]],order=(2,0),trend='nc',exog=None)
+#Estimation
+fitMod = orgMod.fit(maxiter=1000,disp=False)
+# print
+print(fitMod.summary())
+# get residual
+resid = fitMod.resid
+result = {'fitMod':fitMod,'resid':resid}
+
+result = statsmodels.stats.diagnostic.breaks_cusumolsresid(resid)
+result
+
+from statsmodels.tsa.stattools import grangercausalitytests
+grangercausalitytests(df[["oil_return","auto_return"]], maxlag=2)
+grangercausalitytests(df[["auto_return","oil_return"]], maxlag=2)
+
+#oil return and auto return
+terms = 20
+ax = fitMod.impulse_responses(terms, orthogonalized=True).plot(figsize=(6, 4))
+plt.show()
+
+md = sm.tsa.VAR(df[["oil_return","auto_return"]])
+re = md.fit(2)
+fevd = re.fevd(10)
+# print result of fevd
+print(fevd.summary())
+# plot
+fevd.plot(figsize=(6, 8))
+plt.show()
