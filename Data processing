@@ -1,0 +1,68 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.api import VAR
+from scipy.stats import pearsonr
+import statsmodels.api as sm
+import statsmodels.stats.diagnostic
+import pandas_datareader.data as web
+import datetime
+import datetime, quandl
+from statsmodels.stats.stattools import durbin_watson 
+from statsmodels.graphics.api import qqplot 
+from arch.univariate import arch_model
+from statsmodels.tsa.arima_model import ARMA
+from statsmodels.stats.diagnostic import acorr_ljungbox
+from statsmodels.tsa.stattools import adfuller
+
+import warnings
+warnings.filterwarnings("ignore")
+
+
+start = datetime.date(2010,10,20) 
+end = datetime.date(2020,10,19)
+df_dju=web.DataReader("^DJU","yahoo",start,end)
+df_crude=pd.read_csv("HistoricalQuotes (crude oil).csv")
+df_ndq = quandl.get("NASDAQOMX/QAUTO", trim_start='2010-10-20', trim_end='2020-10-19')
+
+df_crude["Date"] = pd.to_datetime(df_crude["Date"])
+df_crude = df_crude.sort_values(by="Date").set_index("Date")
+dju = pd.DataFrame(df_dju["Adj Close"])
+oil = pd.DataFrame(df_crude.iloc[:,0])
+auto = pd.DataFrame(df_ndq["Index Value"])
+df = oil.join([auto, dju])
+df = df.rename(columns = {" Close/Last" : "crude oil", "Adj Close" : "DJU", "Index Value" : "auto" } )
+df = df.dropna()
+df.to_csv("603df.csv")
+
+df=pd.read_csv("603df.csv")
+
+# plot price change and index change
+fig, axes = plt.subplots(nrows=3, ncols=1, dpi=120, figsize=(10,6))
+for i, ax in enumerate(axes.flatten()):
+    data = df[df.columns[i]]
+    ax.plot(data, color='red', linewidth=1)
+    # Decorations
+    ax.set_title(df.columns[i])
+    ax.xaxis.set_ticks_position('none')
+    ax.yaxis.set_ticks_position('none')
+    ax.spines["top"].set_alpha(0)
+    ax.tick_params(labelsize=6)
+
+plt.tight_layout();
+
+#Calculate return using (Pi+1/Pi) - 1
+df['oil_return'] = df['crude oil']/df_t1['crude oil'] - 1
+df['auto_return'] = df['auto']/df_t1['auto'] - 1
+df['DJU_return'] = df['DJU']/df_t1['DJU'] - 1
+
+df = df.iloc[1:]
+
+#Have a look at oil return varying with time
+plt.plot(df['Date'], df['oil_return'])
+#Have a look at auto return varying with time
+plt.plot(df['Date'], df['auto_return'])
+#Have a look at DJU return varying with time
+plt.plot(df['Date'], df['DJU_return'])
+df['Date'] = pd.to_datetime(df['Date'])
